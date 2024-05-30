@@ -62,10 +62,18 @@ while cap.isOpened():
     frame_width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
     frame_height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
 
-    # Définir la zone pour la main.
-    box_top_left = (int(frame_width * 0.75), 0)
-    box_bottom_right = (frame_width, int(frame_height * 0.25))
-    cv2.rectangle(image, box_top_left, box_bottom_right, (0, 255, 0), 2)
+    if not countdown_finished and not countdown_started:
+        # Définir la zone pour la main.
+        box_top_left = (int(frame_width * 0.75), 0)
+        box_bottom_right = (frame_width, int(frame_height * 0.25))
+        cv2.rectangle(image, box_top_left, box_bottom_right, (0, 255, 0), 2)
+
+        # Afficher le message d'invite.
+        cv2.putText(image, 'Mettez votre main dans le carre',
+                    (frame_width // 8 - 40, frame_height // 2), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2, cv2.LINE_AA)
+        
+        cv2.putText(image, 'vert pour lancer le compteur !',
+                    (frame_width // 8 - 40 , frame_height // 2 + 30), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2, cv2.LINE_AA)
 
     if results_hands.multi_hand_landmarks:
         for hand_landmarks in results_hands.multi_hand_landmarks:
@@ -89,7 +97,7 @@ while cap.isOpened():
             countdown_finished = True
         else:
             count_display = 3 - int(elapsed_time)
-            cv2.putText(image, str(count_display), (box_top_left[0], box_bottom_right[1] + 50), cv2.FONT_HERSHEY_SIMPLEX, 2, (0, 0, 255), 3, cv2.LINE_AA)
+            cv2.putText(image, str(count_display), (frame_width // 2 - 50, frame_height // 2), cv2.FONT_HERSHEY_SIMPLEX, 2, (0, 0, 255), 3, cv2.LINE_AA)
 
     if countdown_finished:
         if results_pose.pose_landmarks:
