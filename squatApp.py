@@ -96,8 +96,7 @@ while cap.isOpened():
             countdown_finished = True
         else:
             count_display = 3 - int(elapsed_time)
-            cv2.putText(image, str(count_display), (box_top_left[0], box_bottom_right[1] + 50),
-                         cv2.FONT_HERSHEY_SIMPLEX, 2, (0, 0, 255), 3, cv2.LINE_AA)
+            cv2.putText(image, str(count_display), (frame_width // 2, frame_height // 2), cv2.FONT_HERSHEY_SIMPLEX, 2, (0, 0, 255), 3, cv2.LINE_AA)
 
     if countdown_finished:
         if results_pose.pose_landmarks:
