@@ -15,10 +15,6 @@ if len(sys.argv) > 1:
 mp_pose = mp.solutions.pose
 pose = mp_pose.Pose()
 
-# Initialiser MediaPipe Hands.
-mp_hands = mp.solutions.hands
-hands = mp_hands.Hands()
-
 # Initialiser la capture vidéo.
 cap = cv2.VideoCapture(0)
 
@@ -54,7 +50,6 @@ while cap.isOpened():
     # Convertir l'image en RGB.
     image = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
     results_pose = pose.process(image)
-    results_hands = hands.process(image)
 
     # Convertir l'image en BGR pour l'affichage.
     image = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
@@ -68,22 +63,26 @@ while cap.isOpened():
         box_bottom_right = (frame_width, int(frame_height * 0.25))
         cv2.rectangle(image, box_top_left, box_bottom_right, (0, 255, 0), 2)
 
-        # Afficher le message d'invite.
+     # Afficher le message d'invite.
         cv2.putText(image, 'Mettez votre main dans le carre',
                     (frame_width // 8 - 40, frame_height // 2), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2, cv2.LINE_AA)
         
         cv2.putText(image, 'vert pour lancer le compteur !',
                     (frame_width // 8 - 40 , frame_height // 2 + 30), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2, cv2.LINE_AA)
 
-    if results_hands.multi_hand_landmarks:
-        for hand_landmarks in results_hands.multi_hand_landmarks:
-            for id, lm in enumerate(hand_landmarks.landmark):
-                cx, cy = int(lm.x * frame_width), int(lm.y * frame_height)
-                if box_top_left[0] <= cx <= box_bottom_right[0] and box_top_left[1] <= cy <= box_bottom_right[1]:
-                    hand_in_box = True
-                    break
-            if hand_in_box:
-                break
+    if results_pose.pose_landmarks:
+        landmarks = results_pose.pose_landmarks.landmark
+        left_wrist = landmarks[mp_pose.PoseLandmark.LEFT_WRIST.value]
+        right_wrist = landmarks[mp_pose.PoseLandmark.RIGHT_WRIST.value]
+
+        left_wrist_coords = np.array([left_wrist.x * frame_width, left_wrist.y * frame_height]).astype(int)
+        right_wrist_coords = np.array([right_wrist.x * frame_width, right_wrist.y * frame_height]).astype(int)
+
+        if (box_top_left[0] <= left_wrist_coords[0] <= box_bottom_right[0] and
+            box_top_left[1] <= left_wrist_coords[1] <= box_bottom_right[1]) or \
+            (box_top_left[0] <= right_wrist_coords[0] <= box_bottom_right[0] and
+            box_top_left[1] <= right_wrist_coords[1] <= box_bottom_right[1]):
+            hand_in_box = True
         else:
             hand_in_box = False
 
@@ -97,12 +96,11 @@ while cap.isOpened():
             countdown_finished = True
         else:
             count_display = 3 - int(elapsed_time)
-            cv2.putText(image, str(count_display), (frame_width // 2 - 50, frame_height // 2), cv2.FONT_HERSHEY_SIMPLEX, 2, (0, 0, 255), 3, cv2.LINE_AA)
+            cv2.putText(image, str(count_display), (box_top_left[0], box_bottom_right[1] + 50),
+                         cv2.FONT_HERSHEY_SIMPLEX, 2, (0, 0, 255), 3, cv2.LINE_AA)
 
     if countdown_finished:
         if results_pose.pose_landmarks:
-            landmarks = results_pose.pose_landmarks.landmark
-
             keypoints = {
                 'left_hip': [landmarks[mp_pose.PoseLandmark.LEFT_HIP.value].x,
                              landmarks[mp_pose.PoseLandmark.LEFT_HIP.value].y],
@@ -150,7 +148,8 @@ while cap.isOpened():
                     cv2.line(image, tuple(keypoints_pixel[line[0]]), tuple(keypoints_pixel[line[1]]), (0, 255, 0), 2)
 
             left_knee_angle = calculate_angle(keypoints['left_hip'], keypoints['left_knee'], keypoints['left_ankle'])
-            right_knee_angle = calculate_angle(keypoints['right_hip'], keypoints['right_knee'], keypoints['right_ankle'])
+            right_knee_angle = calculate_angle(keypoints['right_hip'], keypoints['right_knee'],
+                                               keypoints['right_ankle'])
 
             if left_knee_angle < 100 and right_knee_angle < 100 and not down_position:
                 down_position = True
@@ -159,7 +158,8 @@ while cap.isOpened():
                 squat_count += 1
                 down_position = False
 
-            cv2.putText(image, f'Squats: {squat_count}', (50, 50), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2, cv2.LINE_AA)
+            cv2.putText(image, f'Squats: {squat_count}', (50, 50), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2,
+                        cv2.LINE_AA)
 
             if debugMode:
                 cv2.putText(image, f'Left Angle: {int(left_knee_angle)}', tuple(keypoints_pixel['left_knee']),
